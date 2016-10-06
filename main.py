@@ -5,12 +5,12 @@ import webapp2
 
 from google.appengine.ext import db
 
-from user import User
-from post import Post
-from comment import Comment
-from like import Like
 import jinja_helper
 
+from comment import Comment
+from like import Like
+from post import Post
+from user import User
 
 # hashing secret
 
@@ -306,7 +306,7 @@ class PostPage(Handler):
             return
 
         """
-            On posting comment, new comment datastore object is created and stored,
+            While commenting, a comment datastore object is created and stored,
             with respect to each user and post.
         """
         c = ""
@@ -485,22 +485,20 @@ class EditComment(Handler):
             self.render("editpost.html", subject=subject,
                         content=content, error=error)
 
-###################################################################
-
 
 app = webapp2.WSGIApplication([
     ('/', BlogFront),
+    ('/welcome', Welcome),
     ('/blog', BlogFront),
     ('/blog/([0-9]+)', PostPage),
     ('/blog/newpost', NewPost),
-    ('/blog/deletepost/([0-9]+)', DeletePost),
     ('/blog/editpost/([0-9]+)', EditPost),
-    ('/blog/deletecomment/([0-9]+)/([0-9]+)',
-     DeleteComment),
+    ('/blog/deletepost/([0-9]+)', DeletePost),
     ('/blog/editcomment/([0-9]+)/([0-9]+)',
      EditComment),
+    ('/blog/deletecomment/([0-9]+)/([0-9]+)',
+     DeleteComment),
     ('/signup', Register),
-    ('/welcome', Welcome),
     ('/login', Login),
     ('/logout', Logout)],
     debug=True)
