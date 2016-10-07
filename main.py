@@ -232,7 +232,7 @@ class Logout(Handler):
             logouts the session
         """
         self.logout()
-        self.redirect('/blog')
+        self.redirect('/login')
 
 # Welcome module
 
@@ -333,7 +333,7 @@ class PostPage(Handler):
                 c.put()
         else:
             self.redirect("/blog/" + post_id +
-                          "?error= Cannot like your own post.")
+                          "?error= Need to Login Please.")
             return
 
         comments = db.GqlQuery("select * from Comment where post_id = " +
@@ -384,6 +384,12 @@ class DeletePost(Handler):
             if post.user_id == self.user.key().id():
                 post.delete()
                 self.redirect("/?deleted_post_id=" + post_id)
+            elif post.user_id != self.user.key().id():
+                self.redirect("/blog/" + post_id +
+                              "?error= Access denied")
+        else:
+            self.redirect("/blog/" + post_id +
+                          "?error= Cannot Delete, Login Please.")
 
 
 class EditPost(Handler):
@@ -397,11 +403,10 @@ class EditPost(Handler):
                             content=post.content)
             else:
                 self.redirect("/blog/" + post_id +
-                              "/error=access denied")
-                # self.redirect("/login")
+                              "?error= Access denied")
         else:
             self.redirect("/blog/" + post_id +
-                          "?error= Need to Login Please..")
+                          "?error= Login Please.")
 
     def post(self, post_id):
         """
@@ -409,21 +414,26 @@ class EditPost(Handler):
         """
         if not self.user:
             self.redirect('/login')
-        subject = self.request.get('subject')
-        content = self.request.get('content')
-
-        if subject and content:
-            key = db.Key.from_path('Post', int(post_id),
-                                   parent=blog_key())
-            post = db.get(key)
-            post.subject = subject
-            post.content = content
-            post.put()
-            self.redirect('/blog/' + post_id)
+            return
         else:
-            error = "subject and content, please!"
-            self.render("editpost.html", subject=subject,
-                        content=content, error=error)
+            subject = self.request.get('subject')
+            content = self.request.get('content')
+
+            if subject and content:
+                key = db.Key.from_path('Post', int(post_id),
+                                       parent=blog_key())
+                post = db.get(key)
+                if post.user_id == self.user.key().id():
+                    post.subject = subject
+                    post.content = content
+                    post.put()
+                    self.redirect('/blog/' + post_id)
+                elif post.user_id != self.user.key().id():
+                    self.redirect("/login")
+            else:
+                error = "subject and content, please!"
+                self.render("editpost.html", subject=subject,
+                            content=content, error=error)
 
 
 class DeleteComment(Handler):
@@ -454,31 +464,39 @@ class EditComment(Handler):
             c = db.get(key)
             if c.user_id == self.user.key().id():
                 self.render("editcomment.html", comment=c.comment)
-            else:
+            elif c.user_id != self.user.key().id():
                 self.redirect("/blog/" + post_id +
-                              "?error=You don't have access to edit this " +
-                              "comment.")
+                              "?error= Access Denied.")
+        else:
+            self.redirect("/blog/" + post_id +
+                          "?error= Login Please.")
 
     def post(self, post_id, comment_id):
         """
             Updates post.
         """
         if not self.user:
-            self.redirect('/blog')
+            self.redirect("/blog/" + post_id +
+                          "?error= Login Please.")
+            return
 
-        comment = self.request.get('comment')
-
-        if comment:
-            key = db.Key.from_path('Comment',
-                                   int(comment_id), parent=blog_key())
-            c = db.get(key)
-            c.comment = comment
-            c.put()
-            self.redirect('/blog/%s' % post_id)
         else:
-            error = "subject and content, please!"
-            self.render("editpost.html", subject=subject,
-                        content=content, error=error)
+            comment = self.request.get('comment')
+
+            if comment:
+                key = db.Key.from_path('Comment',
+                                       int(comment_id), parent=blog_key())
+                c = db.get(key)
+                if c.user_id != self.user.key().id():
+                    self.redirect("/blog/" + post_id +
+                                  "?error= Login Please.")
+                c.comment = comment
+                c.put()
+                self.redirect('/blog/%s' % post_id)
+            else:
+                error = "subject and content, please!"
+                self.render("editpost.html", subject=subject,
+                            content=content, error=error)
 
 
 app = webapp2.WSGIApplication([

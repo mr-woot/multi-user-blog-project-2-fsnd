@@ -16,17 +16,10 @@
 <div class="row">
     <div class="col-md-12">
         <form method="post" role="form">
-            {% if user %}
             <a id="post-edit" class="btn btn-primary" href="/blog/editpost/{{post.key().id()}}">Edit</a>
             <a id="post-delete" class="btn btn-danger" href="/blog/deletepost/{{post.key().id()}}">Delete</a>
             <input type="hidden" class="form-control" name="like" value="update">
             <button type="submit" class="btn btn-primary">Like {{no_of_likes}}</button>
-            {% else %}
-            <a class="btn btn-primary" href="/blog/{{post.key().id()}}?error= Login to edit, post, delete and comment.">Edit</a>
-            <a class="btn btn-danger" href="/blog/{{post.key().id()}}?error= Login to edit, post, delete and comment.">Delete</a>
-            <input type="hidden" class="form-control" name="like" value="update">
-            <button type="submit" class="btn btn-primary">Like {{no_of_likes}}</button>
-            {% endif %}
         </form>
     </div>
     <div class="col-md-12">
