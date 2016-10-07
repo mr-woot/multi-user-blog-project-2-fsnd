@@ -5,12 +5,13 @@ import webapp2
 
 from google.appengine.ext import db
 
-import jinja_helper
 
-from comment import Comment
-from like import Like
-from post import Post
-from user import User
+from model import Comment
+from model import Like
+from model import Post
+from model import User
+
+import jinja_helper
 
 # hashing secret
 
@@ -245,7 +246,7 @@ class Welcome(Handler):
         if self.user:
             self.render('welcome.html', username=self.user.name)
         else:
-            self.redirect('/login')
+            self.redirect('/welcome')
 
 
 # Blog Parent key
@@ -263,13 +264,10 @@ class BlogFront(Handler):
         """
             Main Blog Page with all posts sorted
         """
-        if not self.user:
-            self.redirect("/login")
-        else:
-            deleted_post_id = self.request.get('deleted_post_id')
-            posts = Post.all().order('-created')
-            self.render('front.html', posts=posts,
-                        deleted_post_id=deleted_post_id)
+        deleted_post_id = self.request.get('deleted_post_id')
+        posts = Post.all().order('-created')
+        self.render('front.html', posts=posts,
+                    deleted_post_id=deleted_post_id)
 
 # Post Page module
 
@@ -320,7 +318,7 @@ class PostPage(Handler):
 
                 if self.user.key().id() == post.user_id:
                     self.redirect("/blog/" + post_id +
-                                  "?error=postid")
+                                  "?error= You cannot like your own post")
                     return
                 elif likes.count() == 0:
                     l = Like(parent=blog_key(), user_id=self.user.key().id(),
@@ -334,7 +332,8 @@ class PostPage(Handler):
                             comment=self.request.get('comment'))
                 c.put()
         else:
-            self.redirect("/login")
+            self.redirect("/blog/" + post_id +
+                          "?error= Cannot like your own post.")
             return
 
         comments = db.GqlQuery("select * from Comment where post_id = " +
@@ -385,10 +384,6 @@ class DeletePost(Handler):
             if post.user_id == self.user.key().id():
                 post.delete()
                 self.redirect("/?deleted_post_id=" + post_id)
-            else:
-                self.redirect("/login?error=access denied")
-        else:
-            self.redirect("/login")
 
 
 class EditPost(Handler):
@@ -405,7 +400,8 @@ class EditPost(Handler):
                               "/error=access denied")
                 # self.redirect("/login")
         else:
-            self.render('login-form.html', error2="Need to Login Please..")
+            self.redirect("/blog/" + post_id +
+                          "?error= Need to Login Please..")
 
     def post(self, post_id):
         """
@@ -441,10 +437,12 @@ class DeleteComment(Handler):
                 c.delete()
                 self.redirect("/blog/" + post_id +
                               "?deleted_comment_id=" + comment_id)
-            else:
-                self.redirect("/login?error=Login Please")
+            elif c.user_id != self.user.key().id():
+                self.redirect("/blog/"
+                              + post_id + "?error= Access Denied")
         else:
-            self.redirect("/login")
+            self.redirect("/blog/"
+                          + post_id + "?error= Login Please.")
 
 
 class EditComment(Handler):
@@ -460,9 +458,6 @@ class EditComment(Handler):
                 self.redirect("/blog/" + post_id +
                               "?error=You don't have access to edit this " +
                               "comment.")
-        else:
-            self.redirect("/login?error=You need to be logged, in order to" +
-                          " edit your post!!")
 
     def post(self, post_id, comment_id):
         """
